@@ -31,7 +31,8 @@ class InputInterface(object):
 
     def __init__(self):
         #  set True if input range is -1 to +1
-        self.is_normalized = True
+
+        self.is_normalized = False
         self.expect_degrees = False  # convert to radians if True
         self.HOST = "localhost"
         self.PORT = 10009
@@ -93,7 +94,8 @@ class InputInterface(object):
         try:
             if msg is not None:
                 msg = msg.rstrip()
-                # print msg
+                #self.move_func(msg)
+                print msg
                 fields = msg.split(",")
                 field_list = list(fields)
                 if field_list[0] == "xyzrpy":
@@ -108,6 +110,7 @@ class InputInterface(object):
                         if self.move_func:
                             self.move_func(r)
                             self.levels = r
+
 
                     except:  # if not a list of floats, process as command
                         e = sys.exc_info()
@@ -148,15 +151,19 @@ class InputInterface(object):
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-
 def cmd_func(cmd):
+
+    sock.sendto(cmd, ("localhost", 10010))
     print cmd
 
 
 def move_func(req):
-    x = "norm," + str(req[0]) + "," + str(req[1]) + "," + str(req[2]) + "," + str(req[3]) + "," + str(
-        req[4]) + "," + str(req[5])
-    sock.sendto(x, ("localhost", 10010))
+
+    #sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    x = "xyzrpy," + str(req[0]) + "," + str(req[1]) + "," + str(req[2]) + "," + str(req[3]) + "," + str(
+        req[4]) + "," + str(req[5])+",\n"
+    print x
+    sock.sendto(x, ("127.0.0.1", 10010))
 
     # print req
 
