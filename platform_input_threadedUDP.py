@@ -94,10 +94,6 @@ class InputInterface(object):
                     try:
                         r = [float(f) for f in field_list[1:7]]
                         # remove next 3 lines if angles passed as radians 
-                        #r[3] = radians(r[3])
-                        #r[4] = radians(r[4])
-                        #r[5] = radians(r[5])
-                        #print r
                         if self.move_func:
                             #print r
                             self.move_func(r)
