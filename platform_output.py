@@ -18,7 +18,7 @@ import time
 import copy
 import numpy as np
 from output_gui import OutputGui
-# import matplotlib.pyplot as plt    #  only for testing
+#  import matplotlib.pyplot as plt    #  only for testing
 
 TESTING = False
 if not TESTING:
@@ -28,7 +28,6 @@ if not TESTING:
 """
   Import platform configuration
 """
-# from ConfigServo import *
 #  from ConfigV1 import *
 from ConfigV2 import *
 #  from ConfigServoSim import *
@@ -38,9 +37,6 @@ PRINT_MUSCLES = False
 PRINT_PRESSURE_DELTA = True
 WAIT_FESTO_RESPONSE = False #True
 OLD_FESTO_CONTROLLER = False
-
-MONITOR_PORT = 10010 # echo actuator lengths to this port
-MONITOR_ADDR = ('localhost', MONITOR_PORT)
 
 if TESTING:
     print "THIS IS TESTING MODE, no output to Festo!!!"
@@ -52,7 +48,6 @@ if PLATFORM_NAME == "SERVO_SIM":
     import serial
 else:
     IS_SERIAL = False
-    print GEOMETRY_TYPE
     if not TESTING:
         if OLD_FESTO_CONTROLLER:
             FST_port = 991
@@ -87,16 +82,11 @@ class OutputInterface(object):
         self.pressure_percent = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.prev_time = time.clock()
         self.netlink_ok = False # True if festo responds without error
-        self.ser = None
-        self.monitor_client = None
-        if MONITOR_PORT:       
-            self.monitor_client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)              
-            print "platform monitor output on port", MONITOR_PORT
         if IS_SERIAL:
             #  configure the serial connection
             try:
                 self.ser = serial.Serial(port=OutSerialPort, baudrate=57600, timeout=1)
-                print "Serial Output simulator opened on ", OutSerialPort
+                print "Out simulator opened on ", OutSerialPort
             except:
                 print "unable to open Out simulator serial port", OutSerialPort
         elif not TESTING:
@@ -108,7 +98,6 @@ class OutputInterface(object):
         print ""
         self.prevMsg = []
         self.use_gui = False # defualt is no gui
-        self.activate_piston_flag = 0  # park piston is extended when flag set to 1, parked when 0
         
     def init_gui(self, master):
         self.gui = OutputGui()
@@ -136,7 +125,6 @@ class OutputInterface(object):
         """
         get coordinates of fixed and moving attachment points and mid height
         """
-        "platform mid height", self.platform_mid_height 
         return base_pos, platform_pos, self.platform_mid_height 
 
     def get_actuator_lengths(self):
@@ -212,7 +200,6 @@ class OutputInterface(object):
                 pass
                 #  self._slow_move(self.platform_disabled_pos, actuator_lengths, 1000)
             else:
-                self.activate_piston_flag = 0
                 self._slow_move(actuator_lengths, self.platform_disabled_pos, 1000)
             
     def move_to_limits(self, pos):
@@ -231,6 +218,14 @@ class OutputInterface(object):
         self._slow_move(self.platform_disabled_pos, client_pos, 1000)
         #print "move to ready pos"
 
+    def park_platform(self, state):
+        if state:
+            self.activate_piston_flag = 0
+            print "setting flag to activate pistion to 0"
+        else:
+            self.activate_piston_flag = 1
+            print "setting flag to activate pistion to 1"
+
     def swell_for_access(self, interval):
         """
         Briefly raises platform high enough to insert access stairs
@@ -243,14 +238,6 @@ class OutputInterface(object):
         time.sleep(interval)
         self._slow_move(self.platform_winddown_pos, self.platform_disabled_pos, 1000)
 
-    def park_platform(self, state):
-        if state:
-            self.activate_piston_flag = 0
-            print "setting flag to activate pistion to 0"
-        else:
-            self.activate_piston_flag = 1
-            print "setting flag to activate pistion to 1"
-            
     def move_platform(self, lengths):  # lengths is list of 6 actuator lengths as millimeters
         """
         Move all platform actuators to the given lengths
@@ -282,14 +269,6 @@ class OutputInterface(object):
     def show_muscles(self, position_request, muscles):
         if self.use_gui:
            self.gui.show_muscles(position_request, muscles, self.pressure_percent)
-        if self.monitor_client:
-            # echo position requests to monitor port if enabled
-             xyzrpy = ",".join('%0.3f' % item for item in position_request)             
-             lengths = ",".join('%0.1f' % item for item in muscles)        
-             msg = "monitor," + xyzrpy + ',' + lengths +'\n'
-             # send pos as mm and radians, actuator lengths as mm
-             self.monitor_client.sendto(msg, MONITOR_ADDR)
-             print msg
         
     #  private methods
     def _slow_move(self, start, end, duration):
@@ -332,7 +311,20 @@ class OutputInterface(object):
         #  print "\nPlatformOutput using %s configuration" %(PLATFORM_NAME)
         #  print "Actuator lengths: Min %d, Max %d, mid %d" %( MIN_ACTUATOR_LEN, MAX_ACTUATOR_LEN, MID_ACTUATOR_LEN)
 
-        self.platform_mid_height = platform_mid_height
+        #  use actuator length and the distance between attachment points to calculate height extents
+        a = np.linalg.norm(base_pos[1]-platform_pos[1])  # distance between consecutive platform attachmment points
+
+        b = MIN_ACTUATOR_LEN
+        platforMin = math.sqrt(b * b - a * a)  # the min vertical movement from center to top or bottom
+        #  print "min height", round(platforMin)
+
+        b = MID_ACTUATOR_LEN
+        self.platform_mid_height = math.sqrt(b * b - a * a)  # the mid vertical movement from center to top or bottom
+        #  print "mid height", round(self.platform_mid_height)
+
+        b = MAX_ACTUATOR_LEN
+        platformMax = math.sqrt(b * b - a * a)  # the max vertical movement from center to top or bottom
+        #  print "max height", round(platformMax)
 
         #  uncomment this section to plot the array coordinates
         """
@@ -350,19 +342,21 @@ class OutputInterface(object):
         #  print "platform_pos:\n",platform_pos
 
     def _move_to_serial(self, lengths):
-        # msg = "xyzrpy," + ",".join([str(round(item)) for item in lengths])
-        payload =   ",".join('%0.1f' % item for item in lengths)
-        if payload != self.prevMsg:
-            print "lengths: ", payload
-            self.prevMsg = payload
-        if self.ser and self.ser.isOpen():
-            self.ser.write("xyzrpy," + payload + '\n')          
+        """ temp hack tpo produce norm output"""
+        #  msg = 'jsonrpc:,method":"moveEvent","rawArgs"' + ':'.join([str(self.normalize(item)) for item in lengths]) + ']}'
+        #  msg = "rawArgs," + ",".join([str(self.normalize(item)) for item in lengths])
+
+        msg = "rawArgs," + ",".join([str(round(item)) for item in lengths])
+        if msg != self.prevMsg:
+            #  print msg
+            self.prevMsg = msg
+        if self.ser.isOpen():
+            self.ser.write(msg + '\n')
             #  print self.ser.readline()
         else:
             print "serial not open"
 
     def _move_to(self, lengths):
-        print "lengths:\t ", ",".join('  %d' % item for item in lengths)
         now = time.clock()
         timeDelta = now - self.prev_time
         self.prev_time = now
@@ -411,15 +405,12 @@ class OutputInterface(object):
         if not TESTING:
             try:
                 if not OLD_FESTO_CONTROLLER:
-                    muscle_pressures.append(self.activate_piston_flag)
-                    print "muscle pressures:",  muscle_pressures
                     packet = easyip.Factory.send_flagword(0, muscle_pressures)
                     try:
                         self._send_packet(packet)
                         if WAIT_FESTO_RESPONSE:
                             self.actual_pressures = self._get_pressure()
                             delta = [act - req for req, act in zip(muscle_pressures, self.actual_pressures)]
-                            # todo - next line needs changing because park flag now appended to list
                             self.pressure_percent = [int(d * 100 / req) for d, req in zip(delta, muscle_pressures)]
                             if PRINT_PRESSURE_DELTA:
                                 print muscle_pressures, delta, self.pressure_percent

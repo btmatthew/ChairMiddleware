@@ -55,6 +55,10 @@ You only need enter values for the left side, the other side is a mirror image a
 import math
 
 PLATFORM_NAME = "Chair v2"
+GEOMETRY_ORIGINAL = False
+GEOMETRY_AS_BUILT = True 
+GEOMETRY_IDEAL = False
+
 
 PLATFORM_UNLOADED_WEIGHT = 20  # weight of moving platform without 'passenger' in killograms
 DEFAULT_PAYLOAD_WEIGHT = 65    # weight of 'passenger'
@@ -93,19 +97,60 @@ platform_pos     = [[m*math.cos(a),m*math.sin(a),0]  for a,m in zip(_platformAng
 #  input x and y coordinates with origin as center of the base plate
 #  the z value should be zero for both base and platform
 #  only -Y side is needed as other side is symmetrical (see figure)
-base_pos = [
-            [373.8, -517.7, 0.],  # first upper attachment point
-            [258.9, -583.7, 0.],
-            [-635.7, -68.0, 0.]
-           ]
 
-platform_pos = [
-                 [689.3, -70.0, 0.],  # lower (movable) attachment point
-                 [-287.6, -634.1, 0.],
-                 [-408.8, -564.1, 0.]
+if GEOMETRY_ORIGINAL:
+    GEOMETRY_TYPE = "Using geometry values as used in 2017"
+    base_pos = [
+                [373.8, -517.7, 0.],  # first upper attachment point
+                [258.9, -583.7, 0.],
+                [-635.7, -68.0, 0.]
                ]
 
-#  todo  check this (can we calculate the following)?
+    platform_pos = [
+                     [689.3, -70.0, 0.],  # lower (movable) attachment point
+                     [-287.6, -634.1, 0.],
+                     [-408.8, -564.1, 0.]
+               ]
+               
+    platform_mid_height = -715               
+
+elif GEOMETRY_AS_BUILT:
+    GEOMETRY_TYPE = "Using geometry values based on platform as first built"
+    base_pos = [
+                [377.3, -517.8, 0.],  # first upper attachment point
+                [259.7, -585.7, 0.],
+                [-637.1, -67.9, 0.]
+               ]
+
+    platform_pos = [
+                     [ 646.1, -70.0,  0.],  # lower (movable) attachment point
+                     [-447.0, -648.8, 0.],
+                     [-325.8, -718.8, 0.]
+                   ]
+
+    platform_mid_height = -655                   
+    
+elif GEOMETRY_IDEAL:
+    GEOMETRY_TYPE = "Using geometry values based on ideal design"
+    base_pos = [
+                [377.3, -517.8, 0.],  # first upper attachment point
+                [259.7, -585.7, 0.],
+                [-637.1, -67.9, 0.]
+               ]
+
+    platform_pos = [
+                     [ 646.1, -70.0,  0.],  # lower (movable) attachment point
+                     [-447.0, -481.8, 0.],
+                     [-325.8, -551.8, 0.]
+                   ]
+                   
+    platform_mid_height = -715
+    
+else:
+    GEOMETRY_TYPE = "Geometry type not defined"
+               
+
+
 #  the max movement in a single DOF
 platform_1dof_limits = [100, 122, 140, math.radians(15), math.radians(20), math.radians(12)]
 

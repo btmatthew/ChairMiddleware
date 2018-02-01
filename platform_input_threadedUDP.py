@@ -116,7 +116,7 @@ class InputInterface(object):
 
     def listener_thread(self, inQ, HOST, PORT):
         try:
-            self.MAX_MSG_LEN = 80
+            self.MAX_MSG_LEN = 1024
             client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             client.bind((HOST, PORT))
             print "opening socket on", PORT
