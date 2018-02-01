@@ -65,7 +65,9 @@ class InputInterface(object):
 
     def begin(self, cmd_func, move_func, limits):
         self.cmd_func = cmd_func
-        self.move_func = move_func       
+        self.move_func = move_func
+        #todo replace this with buttons
+        self.cmd_func("enable")
 
     def fin(self):
         # client exit code goes here
