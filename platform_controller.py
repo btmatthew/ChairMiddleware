@@ -15,6 +15,8 @@ from math import degrees
 import time
 import os
 
+from PIL import Image
+
 #sys.path.insert(0, './client')  # the relative dir containing client files
 #sys.path.insert(0, './coaster')  # the relative dir containing coaster files
 #sys.path.insert(0, './flight_sim')  # the relative dir containing coaster files
@@ -25,6 +27,7 @@ from platform_input_threadedUDP import InputInterface #  threaded UDP
 from kinematics import Kinematics
 from shape import Shape
 from platform_output import OutputInterface
+
 
 
 isActive = True  # set False to terminate
