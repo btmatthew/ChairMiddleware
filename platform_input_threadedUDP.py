@@ -29,6 +29,11 @@ import pyautogui as pyautogui
 from serial_remote import SerialRemote
 import keys
 
+import carseour
+import time
+
+game = carseour.live()
+
 class InputInterface(object):
     USE_GUI = True  # set True if using tkInter
     print "USE_GUI", USE_GUI
@@ -44,6 +49,7 @@ class InputInterface(object):
         else:
             print 'Platform Input is UDP with realworld parameters'
         self.levels = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.maximum = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.rootTitle = "UDP Platform Interface"
         self.inQ = Queue()
         t = threading.Thread(target=self.listener_thread, args=(self.inQ, self.HOST, self.PORT))
