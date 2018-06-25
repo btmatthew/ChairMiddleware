@@ -33,7 +33,6 @@ import keys
 import carseour
 import time
 import cmath
-
 game = carseour.live()
 
 
@@ -219,11 +218,10 @@ class InputInterface(object):
                     self.floatArray[x] = self.normalization(self.floatArray[x], self.maximum[x])
 
 
-
-                print(str(self.floatArray[1]) + " " + str(self.floatArray[0]) + " " + str(self.floatArray[2]))
-                print(str(self.floatArray[4]) + " " + str(self.floatArray[3]) + " " + str(self.floatArray[5]))
-
-                msg = "xyzrpy," + str(self.floatArray[1]) + " " + str(self.floatArray[0]) + " " + str(self.floatArray[2]) + str(self.floatArray[4]) + " " + str(self.floatArray[3]) + " " + str(self.floatArray[5])
+ #               print(str(self.floatArray[1]) + " " + str(self.floatArray[0]) + " " + str(self.floatArray[2]))
+#                print(str(self.floatArray[4]) + " " + str(self.floatArray[3]) + " " + str(self.floatArray[5]))
+                msg = "xyzrpy," + str(self.floatArray[1]) + "," + str(self.floatArray[0]) + "," + str(self.floatArray[2]) + "," + str(self.floatArray[4]) + "," + str(self.floatArray[3]) + "," + str(self.floatArray[5])
+                print(msg)
             # msg = client.recv(self.MAX_MSG_LEN)
                 self.inQ.put(msg)
             except:
