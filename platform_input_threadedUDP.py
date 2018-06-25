@@ -32,7 +32,7 @@ import keys
 
 import carseour
 import time
-import cmath
+import math
 game = carseour.live()
 
 
@@ -49,8 +49,8 @@ class InputInterface(object):
         else:
             print 'Platform Input is UDP with realworld parameters'
         self.levels = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        self.maximum = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        self.floatArray = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.maximum = [float(0.0), float(0.0), float(0.0), float(0.0), float(0.0), float(0.0)]
+        self.floatArray = [float(0.0), float(0.0), float(0.0), float(0.0), float(0.0), float(0.0)]
         self.rootTitle = "UDP Platform Interface"
         self.inQ = Queue()
         t = threading.Thread(target=self.listener_thread, args=(self.inQ,))
@@ -65,8 +65,7 @@ class InputInterface(object):
         self.master = master
         frame = tk.Frame(master)
         frame.pack()
-        # self.label0 = tk.Label(frame, text="Accepting UDP messages on port " + str(self.PORT))
-        # self.label0.pack(fill=tk.X, pady=10)
+
 
         """ 
         self.units_label = tk.Label(frame, text=t)
@@ -105,27 +104,10 @@ class InputInterface(object):
             msg = self.inQ.get()
         try:
             if msg is not None:
-                msg = msg.rstrip()
-                # print msg
-                fields = msg.split(",")
-                field_list = list(fields)
-                if field_list[0] == "xyzrpy":
-                    # self.msg_label.config(text="got: " + msg)
-                    try:
-                        r = [float(f) for f in field_list[1:7]]
-                        # remove next 3 lines if angles passed as radians 
-                        if self.move_func:
-                            # print r
-                            self.move_func(r)
-                            self.levels = r
-                    except:  # if not a list of floats, process as command
-                        e = sys.exc_info()[0]
-                        print "UDP svc err", e
-                elif field_list[0] == "command":
-                    print "command is {%s}:" % (field_list[1])
-                    self.cmd_label.config(text="Most recent command: " + field_list[1])
-                    if self.cmd_func:
-                        self.cmd_func(field_list[1])
+                print(msg)
+                if self.move_func:
+                    self.move_func(msg)
+                    self.levels = msg
         except:
             #  print error if input not a string or cannot be converted into valid request
             e = sys.exc_info()[0]
@@ -187,7 +169,7 @@ class InputInterface(object):
             sign = -1
         if val > max_val:
             val = max_val
-        return cmath.log10(val + 1) / cmath.log10(max_val) * sign
+        return float(math.log10(val + 1) / math.log10(max_val) * sign)
 
     def listener_thread(self, inQ):
         try:
@@ -212,18 +194,14 @@ class InputInterface(object):
                     elif x == 5:
                         self.floatArray[x] = game.mAngularVelocity[2]
 
-                    if self.floatArray[x] > self.maximum[x]:
+                    fl = abs(self.floatArray[x])
+
+                    if fl > self.maximum[x]:
                         self.maximum[x] = self.floatArray[x]
 
                     self.floatArray[x] = self.normalization(self.floatArray[x], self.maximum[x])
-
-
- #               print(str(self.floatArray[1]) + " " + str(self.floatArray[0]) + " " + str(self.floatArray[2]))
-#                print(str(self.floatArray[4]) + " " + str(self.floatArray[3]) + " " + str(self.floatArray[5]))
-                msg = "xyzrpy," + str(self.floatArray[1]) + "," + str(self.floatArray[0]) + "," + str(self.floatArray[2]) + "," + str(self.floatArray[4]) + "," + str(self.floatArray[3]) + "," + str(self.floatArray[5])
-                print(msg)
-            # msg = client.recv(self.MAX_MSG_LEN)
-                self.inQ.put(msg)
+                time.sleep(0.025)
+                self.inQ.put(self.floatArray)
             except:
                 e = sys.exc_info()[0]
                 s = traceback.format_exc()
