@@ -29,10 +29,13 @@ import pyautogui as pyautogui
 from serial_remote import SerialRemote
 import keys
 
+
 import carseour
 import time
+import cmath
 
 game = carseour.live()
+
 
 class InputInterface(object):
     USE_GUI = True  # set True if using tkInter
@@ -42,17 +45,16 @@ class InputInterface(object):
         #  set True if input range is -1 to +1
         self.is_normalized = True
         self.expect_degrees = False  # convert to radians if True
-        self.HOST = "localhost"
-        self.PORT = 10009
         if self.is_normalized:
             print 'Platform Input is UDP with normalized parameters'
         else:
             print 'Platform Input is UDP with realworld parameters'
         self.levels = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.maximum = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.floatArray = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.rootTitle = "UDP Platform Interface"
         self.inQ = Queue()
-        t = threading.Thread(target=self.listener_thread, args=(self.inQ, self.HOST, self.PORT))
+        t = threading.Thread(target=self.listener_thread, args=(self.inQ,))
         t.daemon = True
         t.start()
         actions = {'detected remote': self.detected_remote, 'activate': self.activate,
@@ -64,8 +66,8 @@ class InputInterface(object):
         self.master = master
         frame = tk.Frame(master)
         frame.pack()
-        self.label0 = tk.Label(frame, text="Accepting UDP messages on port " + str(self.PORT))
-        self.label0.pack(fill=tk.X, pady=10)
+        # self.label0 = tk.Label(frame, text="Accepting UDP messages on port " + str(self.PORT))
+        # self.label0.pack(fill=tk.X, pady=10)
 
         """ 
         self.units_label = tk.Label(frame, text=t)
@@ -84,7 +86,6 @@ class InputInterface(object):
     def begin(self, cmd_func, move_func, limits):
         self.cmd_func = cmd_func
         self.move_func = move_func
-
 
     def fin(self):
         # client exit code goes here
@@ -144,28 +145,28 @@ class InputInterface(object):
         self.cmd_func("disable")
         # directx scan codes http://www.gamespp.com/directx/directInputKeyboardScanCodes.html
         keys.PressKey(0x01)
-        time.sleep(0.05)#Keep the sleep at 50ms to prevent double click of esc button
+        time.sleep(0.05)  # Keep the sleep at 50ms to prevent double click of esc button
         keys.ReleaseKey(0x01)
         print "deactivate"
 
     def pause(self):
         # directx scan codes http://www.gamespp.com/directx/directInputKeyboardScanCodes.html
         keys.PressKey(0x01)
-        time.sleep(0.05)#Keep the sleep at 50ms to prevent double click of esc button
+        time.sleep(0.05)  # Keep the sleep at 50ms to prevent double click of esc button
         keys.ReleaseKey(0x01)
         print "pause"
 
     def dispatch(self):
         # directx scan codes http://www.gamespp.com/directx/directInputKeyboardScanCodes.html
         keys.PressKey(0x1C)
-        time.sleep(0.05)#Keep the sleep at 50ms to prevent double click of esc button
+        time.sleep(0.05)  # Keep the sleep at 50ms to prevent double click of esc button
         keys.ReleaseKey(0x1C)
         print "dispatch"
 
     def reset(self):
         # directx scan codes http://www.gamespp.com/directx/directInputKeyboardScanCodes.html
         keys.PressKey(0xC7)
-        time.sleep(0.05)#Keep the sleep at 50ms to prevent double click of esc button
+        time.sleep(0.05)  # Keep the sleep at 50ms to prevent double click of esc button
         keys.ReleaseKey(0xC7)
         print "reset"
 
@@ -178,12 +179,19 @@ class InputInterface(object):
         self.cmd_func(intensity)
         print "intensity ", intensity
 
-    def listener_thread(self, inQ, HOST, PORT):
+    def normalization(self, val, max_val):
+        if max_val <= 1 or val == 0.0:
+            return val
+        sign = 1.0
+        if val < 0:
+            val = -val
+            sign = -1
+        if val > max_val:
+            val = max_val
+        return cmath.log10(val + 1) / cmath.log10(max_val) * sign
+
+    def listener_thread(self, inQ):
         try:
-            self.MAX_MSG_LEN = 1024
-            client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            client.bind((HOST, PORT))
-            print "opening socket on", PORT
             self.inQ = inQ
         except:
             e = sys.exc_info()[0]
@@ -191,7 +199,32 @@ class InputInterface(object):
             print "thread init err", e, s
         while True:
             try:
-                msg = client.recv(self.MAX_MSG_LEN)
+                for x in range(6):
+                    if x == 0:
+                        self.floatArray[x] = game.mLocalVelocity[1]
+                    elif x == 1:
+                        self.floatArray[x] = game.mLocalVelocity[0]
+                    elif x == 2:
+                        self.floatArray[x] = game.mLocalVelocity[2]
+                    elif x == 3:
+                        self.floatArray[x] = game.mAngularVelocity[1]
+                    elif x == 4:
+                        self.floatArray[x] = game.mAngularVelocity[0]
+                    elif x == 5:
+                        self.floatArray[x] = game.mAngularVelocity[2]
+
+                    if self.floatArray[x] > self.maximum[x]:
+                        self.maximum[x] = self.floatArray[x]
+
+                    self.floatArray[x] = self.normalization(self.floatArray[x], self.maximum[x])
+
+
+
+                print(str(self.floatArray[1]) + " " + str(self.floatArray[0]) + " " + str(self.floatArray[2]))
+                print(str(self.floatArray[4]) + " " + str(self.floatArray[3]) + " " + str(self.floatArray[5]))
+
+                msg = "xyzrpy," + str(self.floatArray[1]) + " " + str(self.floatArray[0]) + " " + str(self.floatArray[2]) + str(self.floatArray[4]) + " " + str(self.floatArray[3]) + " " + str(self.floatArray[5])
+            # msg = client.recv(self.MAX_MSG_LEN)
                 self.inQ.put(msg)
             except:
                 e = sys.exc_info()[0]
