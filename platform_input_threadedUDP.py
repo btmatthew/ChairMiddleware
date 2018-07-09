@@ -13,18 +13,10 @@
 """
 
 import sys
-import socket
-from math import radians, degrees
 import threading
 from Queue import Queue
 import Tkinter as tk
 import traceback
-
-import ctypes
-from ctypes import wintypes
-import time
-
-import pyautogui as pyautogui
 
 from serial_remote import SerialRemote
 import keys
@@ -120,15 +112,15 @@ class InputInterface(object):
 
     def activate(self):
         self.cmd_func("enable")
+        keys.PressKey(0x01)
+        time.sleep(0.05)  # Keep the sleep at 50ms to prevent double click of esc button
+        keys.ReleaseKey(0x01)
         print "activate"
 
     def deactivate(self):
         self.pause()
         self.cmd_func("disable")
         # directx scan codes http://www.gamespp.com/directx/directInputKeyboardScanCodes.html
-        keys.PressKey(0x01)
-        time.sleep(0.05)  # Keep the sleep at 50ms to prevent double click of esc button
-        keys.ReleaseKey(0x01)
         print "deactivate"
 
     def pause(self):
@@ -206,9 +198,9 @@ class InputInterface(object):
                         self.floatArray[x] = game.mAngularVelocity[2]
 
                     fl = abs(self.floatArray[x])
-                    if x == 2:
+                    """if x == 2:
                         print self.maximum[x]
-
+                    """
                         #todo test the feeling of simulator when both input value and maxuimum value are absolute
                     if fl > abs(self.maximum[x]):
                         self.maximum[x] = self.floatArray[x]
