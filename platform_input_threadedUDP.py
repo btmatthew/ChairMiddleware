@@ -48,6 +48,7 @@ class InputInterface(object):
             print 'Platform Input is UDP with normalized parameters'
         else:
             print 'Platform Input is UDP with realworld parameters'
+        self.carName = "noName"
         self.levels = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.maximum = [float(0.0), float(0.0), float(0.0), float(0.0), float(0.0), float(0.0)]
         self.floatArray = [float(0.0), float(0.0), float(0.0), float(0.0), float(0.0), float(0.0)]
@@ -104,7 +105,7 @@ class InputInterface(object):
             msg = self.inQ.get()
         try:
             if msg is not None:
-                print(msg)
+                #print(msg)
                 if self.move_func:
                     self.move_func(msg)
                     self.levels = msg
@@ -179,6 +180,16 @@ class InputInterface(object):
             s = traceback.format_exc()
             print "thread init err", e, s
         while True:
+
+            """
+            This will check if the car was changed to reset the maximum value to better represent the car's maximum XYZ values.
+            """
+            if self.carName == "noName":
+                self.carName = game.mCarName
+
+            if self.carName != game.mCarName:
+                self.carName = game.mCarName
+                self.maximum = [float(0.0), float(0.0), float(0.0), float(0.0), float(0.0), float(0.0)]
             try:
                 for x in range(6):
                     if x == 0:
@@ -195,8 +206,11 @@ class InputInterface(object):
                         self.floatArray[x] = game.mAngularVelocity[2]
 
                     fl = abs(self.floatArray[x])
+                    if x == 2:
+                        print self.maximum[x]
 
-                    if fl > self.maximum[x]:
+                        #todo test the feeling of simulator when both input value and maxuimum value are absolute
+                    if fl > abs(self.maximum[x]):
                         self.maximum[x] = self.floatArray[x]
 
                     self.floatArray[x] = self.normalization(self.floatArray[x], self.maximum[x])
