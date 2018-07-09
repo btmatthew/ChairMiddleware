@@ -112,9 +112,7 @@ class InputInterface(object):
 
     def activate(self):
         self.cmd_func("enable")
-        keys.PressKey(0x01)
-        time.sleep(0.05)  # Keep the sleep at 50ms to prevent double click of esc button
-        keys.ReleaseKey(0x01)
+        self.pause()
         print "activate"
 
     def deactivate(self):
